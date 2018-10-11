@@ -23,9 +23,12 @@ def add_route_for_ips(ips, gateway):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--gateway', required=True)
-    parser.add_argument('--hosts', default="hosts")
+    parser = argparse.ArgumentParser(
+        description="Simple wrapper around route that does dns names to routes mappings. "
+                    "Useful over VPN tunnels when routes are missing."
+    )
+    parser.add_argument('--gateway', required=True, help="The gateway to route requests through")
+    parser.add_argument('--hosts', default="hosts", help="One DNS host entry per line")
     args = parser.parse_args()
 
     ips = get_ips_to_route(args.hosts)
