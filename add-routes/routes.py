@@ -36,4 +36,3 @@ if __name__ == '__main__':
     print("About to invoke sudo, please provide your password if prompted")
 
     add_route_for_ips(ips, args.gateway)
-
