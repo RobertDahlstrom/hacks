@@ -24,7 +24,10 @@ def decode_secret_data(yaml_data):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description="Decodes base64 encoded Yaml data structures. "
+                    "E.g. kubectl get secret my-secret -o yaml | ./plain-secrets.py"
+    )
     parser.add_argument("--yaml", help="The input yaml file to decode base64 encoded data section in")
     args = parser.parse_args()
 
