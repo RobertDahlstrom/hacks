@@ -1,3 +1,4 @@
-requests
-PyYAML
 colorama
+lxml
+PyYAML
+requests

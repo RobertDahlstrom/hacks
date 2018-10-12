@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import colorama
 import importlib
 import logging
 import yaml
@@ -17,12 +18,17 @@ def scan_for_versions(config):
 
         latest_version = get_version(config['latest'])
 
-        print("{name}: {current} -> {latest}".format(name=config['name'],
-                                                     current=current_version,
-                                                     latest=latest_version))
+        output = "{name}: {color}{versions}{reset}"
+        versions = "{current} -> {latest}".format(current=current_version, latest=latest_version)
+        color = colorama.Fore.GREEN
+        if current_version != latest_version:
+            color = colorama.Fore.RED
+
+        print(output.format(name=config['name'], color=color, versions=versions, reset=colorama.Style.RESET_ALL))
 
 
 if __name__ == '__main__':
+    colorama.init()
     logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s")
     # TODO: Enable verbose log option
 

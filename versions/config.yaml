@@ -9,4 +9,11 @@ versions:
       params:
         owner: appscode
         repository: voyager
-  # And so on
+  - name: Jenkins
+    current:
+      name: DockerfileSpider
+      params:
+          path: ~/dev/electrolux/kubernetes-jenkins-deployment/docker/Dockerfile
+    latest:
+      name: JenkinsStableSpider
+      params: {}

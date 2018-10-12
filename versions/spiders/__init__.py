@@ -1,3 +1,4 @@
+from lxml import html
 import os.path
 import re
 import requests
@@ -33,3 +34,19 @@ class GithubReleaseSpider(object):
         response = requests.get(self.url)
         response.raise_for_status()
         return response.json()['tag_name']
+
+
+class JenkinsStableSpider(object):
+    def __init__(self):
+        self.url = "https://jenkins.io/changelog-stable/"
+
+    def get_version(self):
+        """
+        XPath version scanner for the Jenkins Stable/LTS change log page
+        Usually the version there begins with a v
+        """
+        response = requests.get(self.url)
+        response.raise_for_status()
+        tree = html.fromstring(response.content)
+        version_list = tree.xpath('//div[@class="ratings"]/h3[1]/@id')
+        return version_list[0].lstrip('v')
