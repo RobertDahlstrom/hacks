@@ -1,0 +1,12 @@
+versions:
+  - name: Voyager
+    current:
+      name: DockerfileSpider
+      params:
+        path: ~/dev/electrolux/kubernetes-voyager-deployment/docker/Dockerfile
+    latest:
+      name: GithubReleaseSpider
+      params:
+        owner: appscode
+        repository: voyager
+  # And so on
