@@ -3,17 +3,18 @@ versions:
     current:
       name: DockerfileSpider
       params:
-        path: ~/dev/electrolux/kubernetes-voyager-deployment/docker/Dockerfile
+        path: ~/path/to/your/Dockerfile
     latest:
       name: GithubReleaseSpider
       params:
         owner: appscode
         repository: voyager
-  - name: Jenkins
-    current:
-      name: DockerfileSpider
-      params:
-          path: ~/dev/electrolux/kubernetes-jenkins-deployment/docker/Dockerfile
-    latest:
-      name: JenkinsStableSpider
-      params: {}
+#  - name: Jenkins
+#    current:
+#      name: DockerfileSpider
+#      params:
+#          path: ~/path/to/your/Dockerfile
+#    latest:
+#      name: JenkinsStableSpider
+#      # This spider does not take arguments
+#      params: {}

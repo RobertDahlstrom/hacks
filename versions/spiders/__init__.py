@@ -3,8 +3,16 @@ import os.path
 import re
 import requests
 
+"""
+Various 'spiders' that know how to retrieve version information from different sources.
+
+"""
+
 
 class DockerfileSpider(object):
+    """
+    Retrieve version from a local Dockerfile (parse the Dockerfile FROM entry)
+    """
     def __init__(self, **kwargs):
         self.path = kwargs['path']
         self.re = re.compile('^FROM .*:(\d+.*)$')
@@ -24,6 +32,9 @@ class DockerfileSpider(object):
 
 
 class GithubReleaseSpider(object):
+    """
+    Retrieve version for the latest release of a Github project using the Github API
+    """
     def __init__(self, **kwargs):
         api = 'https://api.github.com/repos/{owner}/{repository}/releases/latest'
         self.url = api.format(owner=kwargs['owner'], repository=kwargs['repository'])
@@ -37,6 +48,9 @@ class GithubReleaseSpider(object):
 
 
 class JenkinsStableSpider(object):
+    """
+    Retrieve version for the latest stable Jenkins release (parse the published LTS changelog)
+    """
     def __init__(self):
         self.url = "https://jenkins.io/changelog-stable/"
 
