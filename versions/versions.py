@@ -13,10 +13,10 @@ def get_version(config):
 
 
 def scan_for_versions(config):
-    for config in config_yaml['versions']:
-        current_version = get_version(config['current'])
+    for item in config:
+        current_version = get_version(item['current'])
 
-        latest_version = get_version(config['latest'])
+        latest_version = get_version(item['latest'])
 
         output = "{name}: {color}{versions}{reset}"
         versions = "{current} -> {latest}".format(current=current_version, latest=latest_version)
@@ -24,19 +24,19 @@ def scan_for_versions(config):
         if current_version != latest_version:
             color = colorama.Fore.RED
 
-        print(output.format(name=config['name'], color=color, versions=versions, reset=colorama.Style.RESET_ALL))
+        print(output.format(name=item['name'], color=color, versions=versions, reset=colorama.Style.RESET_ALL))
 
 
 if __name__ == '__main__':
-    colorama.init()
-    logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s")
-    # TODO: Enable verbose log option
-
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="config.yaml", help="Specify your own configuration file")
+    parser.add_argument("--log", default="WARN", choices=['CRITICAL', 'ERROR', 'WARN', 'INFO', 'DEBUG'])
     args = parser.parse_args()
+
+    colorama.init()
+    logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s", level=getattr(logging, args.log))
 
     with open(args.config) as stream:
         config_yaml = yaml.safe_load(stream)
 
-    scan_for_versions(config_yaml)
+    scan_for_versions(config_yaml['versions'])
