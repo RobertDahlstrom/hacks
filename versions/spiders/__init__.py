@@ -18,7 +18,7 @@ class DockerfileSpider(object):
     """
     def __init__(self, **kwargs):
         self.path = kwargs['path']
-        self.re = re.compile('^FROM .*:(\d+.*)$')
+        self.re = re.compile('^FROM .*:v?(\d+.*)$')
  
     def get_version(self):
         """
@@ -29,7 +29,7 @@ class DockerfileSpider(object):
             for line in f:
                 match = self.re.match(line)
                 if match:
-                    return match.group(1).lstrip('v')
+                    return match.group(1)
 
         raise ValueError("No version found in {path}".format(path=self.path))
 
