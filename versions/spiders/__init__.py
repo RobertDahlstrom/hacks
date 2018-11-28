@@ -12,6 +12,29 @@ Various 'spiders' that know how to retrieve version information from different s
 """
 
 
+class BitbucketReleaseSpider(object):
+    def __init__(self, **kwargs):
+        api = "https://api.bitbucket.org/2.0/repositories/{owner}/{repository}/refs/tags?sort=-name"
+        self.url = api.format(owner=kwargs['owner'], repository=kwargs['repository'])
+
+    def get_version(self):
+        # https://api.bitbucket.org/2.0/repositories/atlassian/docker-atlassian-bitbucket-server/refs/tags?sort=-name
+        # The first item should be latest
+        # after that should be the last version, Phew
+
+        # https://api.bitbucket.org/2.0/repositories/atlassian/docker-atlassian-bitbucket-server/refs/tags/latest
+        response = requests.get(self.url)
+        response.raise_for_status()
+        data = response.json()
+        latest = data['values'][0]
+        latest_version = data['values'][1]
+
+        if latest['target']['hash'] != latest_version['target']['hash']:
+            raise ValueError('Expected latest tag followed by last release tag but found different commits')
+
+        return latest_version['name']
+
+
 class DockerfileSpider(object):
     """
     Retrieve version from a local Dockerfile (parse the Dockerfile FROM entry)
@@ -84,3 +107,35 @@ class KubernetesVersionLabelSpider(object):
         result = subprocess.run(kubectl_command, shell=True, check=True, stdout=subprocess.PIPE, encoding='utf-8')
         data = yaml.load(result.stdout)
         return data['metadata']['labels']['app.kubernetes.io/version'].lstrip('v')
+
+
+class KubernetesImageVersionSpider(object):
+    """
+    Retrieves version from a running k8s resource using the provided pattern to boil down to the resource image spec
+    For a stateful set the pattern could be: spec.template.spec.containers.0.image
+    This spider does support numeric indexes used for list items.
+    """
+    def __init__(self, item, name, namespace, pattern):
+        self.item = item
+        self.name = name
+        self.namespace = namespace
+        self.pattern = pattern
+
+    def get_version(self):
+        kubectl_command = "kubectl -n {namespace} get {item} {name} -o yaml".format(
+            namespace=self.namespace, item=self.item, name=self.name
+        )
+        result = subprocess.run(kubectl_command, shell=True, check=True, stdout=subprocess.PIPE, encoding='utf-8')
+        data = yaml.load(result.stdout)
+        section = data
+        for p in self.pattern.split('.'):
+            if isinstance(section, list):
+                p = int(p)
+
+            section = section[p]
+
+        # Here we expect section to contain the image only
+        # e.g. quay.io/prometheus/prometheus:v2.2.1
+        # Next: parse version from that string
+        (_, version) = section.split(':')
+        return version.lstrip('v')
