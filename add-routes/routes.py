@@ -11,6 +11,8 @@ def get_ips_to_route(file_with_host_names):
     with open(file_with_host_names, "rb") as f:
         for dirty_host in f:
             host = dirty_host.strip().decode("utf-8")
+            if host.startswith('#'):
+                continue
             ip = socket.gethostbyname(host)
             ips.append(ip)
     return ips
