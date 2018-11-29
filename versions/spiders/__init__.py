@@ -12,6 +12,18 @@ Various 'spiders' that know how to retrieve version information from different s
 """
 
 
+def _beautify_version(version):
+    """
+    Attempts to return the numerical part of a version by stripping away common prefix items
+    E.g. release- or v
+    """
+    beautiful_version = version.lstrip('v')
+    if beautiful_version.startswith('release-'):
+        beautiful_version = beautiful_version[len('release-'):]
+
+    return beautiful_version
+
+
 class BitbucketReleaseSpider(object):
     """
     Retrieve version from a Bitbucket tags (only looking at top two ones, discarding latest)
@@ -29,7 +41,7 @@ class BitbucketReleaseSpider(object):
         if candidate['name'] == 'latest':
             candidate = data['values'][1]
 
-        return candidate['name']
+        return _beautify_version(candidate['name'])
 
 
 class DockerfileSpider(object):
@@ -49,7 +61,7 @@ class DockerfileSpider(object):
             for line in f:
                 match = self.re.match(line)
                 if match:
-                    return match.group(1)
+                    return _beautify_version(match.group(1))
 
         raise ValueError("No version found in {path}".format(path=self.path))
 
@@ -73,7 +85,7 @@ class DockerHubSpider(object):
         if candidate['name'] == 'latest':
             candidate = data['results'][1]
 
-        return candidate['name']
+        return _beautify_version(candidate['name'])
 
 
 class GithubReleaseSpider(object):
@@ -89,7 +101,28 @@ class GithubReleaseSpider(object):
         to the actual latest available version"""
         response = requests.get(self.url)
         response.raise_for_status()
-        return response.json()['tag_name'].lstrip('v')
+        return _beautify_version(response.json()['tag_name'])
+
+
+class GithubMixedReleaseSpider(object):
+    """
+    Github release spider assumes latest is the latest. Some repositories mix multiple major versions in their releases
+    """
+    def __init__(self, owner, repository, major):
+        api = 'https://api.github.com/repos/{owner}/{repository}/releases'
+        self.url = api.format(owner=owner, repository=repository)
+        self.major = major
+
+    def get_version(self):
+        response = requests.get(self.url)
+        response.raise_for_status()
+        data = response.json()
+        for release in data:
+            version = _beautify_version(release['tag_name'])
+            if version.startswith(self.major):
+                return version
+
+        raise ValueError("Failed to locate a release matching major version: {major}".format(major=self.major))
 
 
 class JenkinsStableSpider(object):
@@ -108,7 +141,7 @@ class JenkinsStableSpider(object):
         response.raise_for_status()
         tree = html.fromstring(response.content)
         version_list = tree.xpath('//div[@class="ratings"]/h3[1]/@id')
-        return version_list[0].lstrip('v')
+        return _beautify_version(version_list[0])
 
 
 class KubernetesVersionLabelSpider(object):
@@ -126,7 +159,7 @@ class KubernetesVersionLabelSpider(object):
         )
         result = subprocess.run(kubectl_command, shell=True, check=True, stdout=subprocess.PIPE, encoding='utf-8')
         data = yaml.load(result.stdout)
-        return data['metadata']['labels']['app.kubernetes.io/version'].lstrip('v')
+        return _beautify_version(data['metadata']['labels']['app.kubernetes.io/version'])
 
 
 class KubernetesImageVersionSpider(object):
@@ -156,4 +189,4 @@ class KubernetesImageVersionSpider(object):
 
         # Here we expect section to contain the image only, e.g. "quay.io/prometheus/prometheus:v2.2.1"
         (_, version) = section.split(':')
-        return version.lstrip('v')
+        return _beautify_version(version)
