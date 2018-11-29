@@ -2,41 +2,59 @@
 import argparse
 import colorama
 import importlib
-import logging
 import yaml
 
 
+class VersionInfo(object):
+    """
+    Class wrapping version information (name, current and latest versions)
+    """
+    def __init__(self, name, current_version, latest_versions):
+        self.name = name
+        self.current_version = current_version
+        self.latest_version = latest_versions
+
+
 def get_version(config):
+    """
+    Dynamically creates a spider from the given configuration and invokes said spiders get_version method
+    """
     spider_class = getattr(importlib.import_module("spiders"), config['name'])
     spider = spider_class(**config['params'])
     return spider.get_version()
 
 
 def scan_for_versions(config):
-    for item in config:
-        current_version = get_version(item['current'])
+    """
+    Returns an iterator to help retrieve versions for all configured items
+    """
+    for conf in config:
+        yield VersionInfo(conf['name'], get_version(conf['current']), get_version(conf['latest']))
 
-        latest_version = get_version(item['latest'])
 
-        output = "{name}: {color}{versions}{reset}"
-        versions = "{current} -> {latest}".format(current=current_version, latest=latest_version)
-        color = colorama.Fore.GREEN
-        if current_version != latest_version:
-            color = colorama.Fore.RED
-
-        print(output.format(name=item['name'], color=color, versions=versions, reset=colorama.Style.RESET_ALL))
+def display_item(version_info):
+    """
+    Colored console output of a VersionInfo object.
+    """
+    output = "{name}: {color}{versions}{reset}"
+    versions = "{info.current_version} -> {info.latest_version}".format(info=version_info)
+    color = colorama.Fore.GREEN
+    if version_info.current_version != version_info.latest_version:
+        color = colorama.Fore.RED
+    print(output.format(name=version_info.name, color=color, versions=versions, reset=colorama.Style.RESET_ALL))
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="config.yaml", help="Specify your own configuration file")
-    parser.add_argument("--log", default="WARN", choices=['CRITICAL', 'ERROR', 'WARN', 'INFO', 'DEBUG'])
     args = parser.parse_args()
 
     colorama.init()
-    logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s", level=getattr(logging, args.log))
 
     with open(args.config) as stream:
         config_yaml = yaml.safe_load(stream)
 
-    scan_for_versions(config_yaml['versions'])
+    configuration = sorted(config_yaml['versions'], key=lambda x: x['name'])
+
+    for item in scan_for_versions(configuration):
+        display_item(item)
