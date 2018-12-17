@@ -197,3 +197,24 @@ class KubernetesImageVersionSpider(object):
         # Here we expect section to contain the image only, e.g. "quay.io/prometheus/prometheus:v2.2.1"
         (_, version) = section.split(':')
         return _beautify_version(version, beautify)
+
+
+class SonarQubeReleaseSpider(object):
+    """
+    Retrieves version using SonarQubes download pages (HTML scrape). Hopefully somewhat stable page.
+    """
+    def __init__(self):
+        self.url = "https://www.sonarqube.org/downloads/"
+
+    def get_version(self, beautify):
+        """
+        XPath version scanner for the SonarQube Download page. Usually it's the first download link on the page.
+        Actual version is then parsed from the download link.
+        """
+        response = requests.get(self.url)
+        response.raise_for_status()
+        tree = html.fromstring(response.content)
+        download_links = tree.xpath('//a[@class="btn btn-primary"]/@href')
+        (_, version_part) = download_links[0].split('-')
+        version = version_part[:-4]  # Remove .zip extension
+        return _beautify_version(version, beautify)
