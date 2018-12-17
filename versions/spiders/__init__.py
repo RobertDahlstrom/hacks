@@ -14,12 +14,16 @@ Various 'spiders' that know how to retrieve version information from different s
 
 def _beautify_version(version):
     """
-    Attempts to return the numerical part of a version by stripping away common prefix items
-    E.g. release- or v
+    Attempts to return the numerical part of a version by stripping away common prefix and postfix notation
+    E.g. release- or v or x.y.z-just-some-annoying-text
     """
     beautiful_version = version.lstrip('v')
     if beautiful_version.startswith('release-'):
         beautiful_version = beautiful_version[len('release-'):]
+
+    if '-' in beautiful_version:
+        parts = beautiful_version.split('-')
+        beautiful_version = parts[0]
 
     return beautiful_version
 
