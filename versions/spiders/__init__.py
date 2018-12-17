@@ -12,11 +12,14 @@ Various 'spiders' that know how to retrieve version information from different s
 """
 
 
-def _beautify_version(version):
+def _beautify_version(version, beautify):
     """
     Attempts to return the numerical part of a version by stripping away common prefix and postfix notation
     E.g. release- or v or x.y.z-just-some-annoying-text
     """
+    if not beautify:
+        return version
+
     beautiful_version = version.lstrip('v')
     if beautiful_version.startswith('release-'):
         beautiful_version = beautiful_version[len('release-'):]
@@ -37,7 +40,7 @@ class BitbucketReleaseSpider(object):
         api = "https://api.bitbucket.org/2.0/repositories/{owner}/{repository}/refs/tags?sort=-name"
         self.url = api.format(owner=owner, repository=repository)
 
-    def get_version(self):
+    def get_version(self, beautify):
         response = requests.get(self.url)
         response.raise_for_status()
         data = response.json()
@@ -45,7 +48,7 @@ class BitbucketReleaseSpider(object):
         if candidate['name'] == 'latest':
             candidate = data['values'][1]
 
-        return _beautify_version(candidate['name'])
+        return _beautify_version(candidate['name'], beautify)
 
 
 class DockerfileSpider(object):
@@ -56,7 +59,7 @@ class DockerfileSpider(object):
         self.path = path
         self.re = re.compile('^FROM .*:v?(\d+.*)$')
  
-    def get_version(self):
+    def get_version(self, beautify):
         """
         Expects a Dockerfile with this format:
         FROM jada/jada:1.2.3
@@ -65,7 +68,7 @@ class DockerfileSpider(object):
             for line in f:
                 match = self.re.match(line)
                 if match:
-                    return _beautify_version(match.group(1))
+                    return _beautify_version(match.group(1), beautify)
 
         raise ValueError("No version found in {path}".format(path=self.path))
 
@@ -80,7 +83,7 @@ class DockerHubSpider(object):
         api = "https://registry.hub.docker.com/v2/repositories/{owner}/{name}/tags/"
         self.url = api.format(owner=self.owner, name=self.name)
 
-    def get_version(self):
+    def get_version(self, beautify):
         response = requests.get(self.url)
         response.raise_for_status()
 
@@ -89,7 +92,7 @@ class DockerHubSpider(object):
         if candidate['name'] == 'latest':
             candidate = data['results'][1]
 
-        return _beautify_version(candidate['name'])
+        return _beautify_version(candidate['name'], beautify)
 
 
 class GithubReleaseSpider(object):
@@ -100,12 +103,12 @@ class GithubReleaseSpider(object):
         api = 'https://api.github.com/repos/{owner}/{repository}/releases/latest'
         self.url = api.format(owner=owner, repository=repository)
 
-    def get_version(self):
+    def get_version(self, beautify):
         """Response contains a Github release API response and since we request latest the tag_name will correspond
         to the actual latest available version"""
         response = requests.get(self.url)
         response.raise_for_status()
-        return _beautify_version(response.json()['tag_name'])
+        return _beautify_version(response.json()['tag_name'], beautify)
 
 
 class GithubMixedReleaseSpider(object):
@@ -117,14 +120,14 @@ class GithubMixedReleaseSpider(object):
         self.url = api.format(owner=owner, repository=repository)
         self.major = major
 
-    def get_version(self):
+    def get_version(self, beautify):
         response = requests.get(self.url)
         response.raise_for_status()
         data = response.json()
         for release in data:
-            version = _beautify_version(release['tag_name'])
+            version = _beautify_version(release['tag_name'], True)
             if version.startswith(self.major):
-                return version
+                return version if beautify else release['tag_name']
 
         raise ValueError("Failed to locate a release matching major version: {major}".format(major=self.major))
 
@@ -136,7 +139,7 @@ class JenkinsStableSpider(object):
     def __init__(self):
         self.url = "https://jenkins.io/changelog-stable/"
 
-    def get_version(self):
+    def get_version(self, beautify):
         """
         XPath version scanner for the Jenkins Stable/LTS change log page
         Usually the version there begins with a v
@@ -145,7 +148,7 @@ class JenkinsStableSpider(object):
         response.raise_for_status()
         tree = html.fromstring(response.content)
         version_list = tree.xpath('//div[@class="ratings"]/h3[1]/@id')
-        return _beautify_version(version_list[0])
+        return _beautify_version(version_list[0], beautify)
 
 
 class KubernetesVersionLabelSpider(object):
@@ -157,13 +160,13 @@ class KubernetesVersionLabelSpider(object):
         self.name = name
         self.namespace = namespace
 
-    def get_version(self):
+    def get_version(self, beautify):
         kubectl_command = "kubectl get {item} {name} -n {namespace} -o yaml".format(
             item=self.item, name=self.name, namespace=self.namespace
         )
         result = subprocess.run(kubectl_command, shell=True, check=True, stdout=subprocess.PIPE, encoding='utf-8')
         data = yaml.load(result.stdout)
-        return _beautify_version(data['metadata']['labels']['app.kubernetes.io/version'])
+        return _beautify_version(data['metadata']['labels']['app.kubernetes.io/version'], beautify)
 
 
 class KubernetesImageVersionSpider(object):
@@ -178,7 +181,7 @@ class KubernetesImageVersionSpider(object):
         self.namespace = namespace
         self.pattern = pattern
 
-    def get_version(self):
+    def get_version(self, beautify):
         kubectl_command = "kubectl -n {namespace} get {item} {name} -o yaml".format(
             namespace=self.namespace, item=self.item, name=self.name
         )
@@ -193,4 +196,4 @@ class KubernetesImageVersionSpider(object):
 
         # Here we expect section to contain the image only, e.g. "quay.io/prometheus/prometheus:v2.2.1"
         (_, version) = section.split(':')
-        return _beautify_version(version)
+        return _beautify_version(version, beautify)

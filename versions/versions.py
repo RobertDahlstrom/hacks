@@ -15,21 +15,21 @@ class VersionInfo(object):
         self.latest_version = latest_versions
 
 
-def get_version(config):
+def get_version(config, beautify):
     """
     Dynamically creates a spider from the given configuration and invokes said spiders get_version method
     """
     spider_class = getattr(importlib.import_module("spiders"), config['name'])
     spider = spider_class(**config['params'])
-    return spider.get_version()
+    return spider.get_version(beautify)
 
 
-def scan_for_versions(config):
+def scan_for_versions(config, beautify=True):
     """
     Returns an iterator to help retrieve versions for all configured items
     """
     for conf in config:
-        yield VersionInfo(conf['name'], get_version(conf['current']), get_version(conf['latest']))
+        yield VersionInfo(conf['name'], get_version(conf['current'], beautify), get_version(conf['latest'], beautify))
 
 
 def display_item(version_info):
@@ -47,6 +47,7 @@ def display_item(version_info):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="config.yaml", help="Specify your own configuration file")
+    parser.add_argument("--ugly", action="store_true", default=False, help="Do not beautify versions")
     args = parser.parse_args()
 
     colorama.init()
@@ -56,5 +57,5 @@ if __name__ == '__main__':
 
     configuration = sorted(config_yaml['versions'], key=lambda x: x['name'])
 
-    for item in scan_for_versions(configuration):
+    for item in scan_for_versions(configuration, not args.ugly):
         display_item(item)
