@@ -9,38 +9,45 @@ class VersionInfo(object):
     """
     Class wrapping version information (name, current and latest versions)
     """
+
+    output_pattern = '{item.name:<20}{color}{item.current_version:<10}{item.latest_version:<10}{reset}'
+
     def __init__(self, name, current_version, latest_versions):
         self.name = name
         self.current_version = current_version
         self.latest_version = latest_versions
 
-
-def get_version(config, beautify):
-    """
-    Dynamically creates a spider from the given configuration and invokes said spiders get_version method
-    """
-    spider_class = getattr(importlib.import_module("spiders"), config['name'])
-    spider = spider_class(**config['params'])
-    return spider.get_version(beautify)
+    def __str__(self):
+        """Colored column console output of this object"""
+        color = colorama.Fore.GREEN
+        if self.current_version != self.latest_version:
+            color = colorama.Fore.RED
+        return self.output_pattern.format(item=self, color=color, reset=colorama.Style.RESET_ALL)
 
 
-def scan_for_versions(config, beautify=True):
-    """
-    Returns an iterator to help retrieve versions for all configured items
-    """
-    for conf in config:
-        yield VersionInfo(conf['name'], get_version(conf['current'], beautify), get_version(conf['latest'], beautify))
+class Versions(object):
+    def __init__(self, config_file, beautify):
+        self.config = Versions._init(config_file)
+        self.beautify = beautify
 
+    @staticmethod
+    def _init(config_file):
+        with open(config_file) as stream:
+            config_yaml = yaml.safe_load(stream)
 
-def display_item(version_info):
-    """
-    Colored console output of a VersionInfo object.
-    """
-    output = "{name:<20}{color}{info.current_version:<10}{info.latest_version:<10}{reset}"
-    color = colorama.Fore.GREEN
-    if version_info.current_version != version_info.latest_version:
-        color = colorama.Fore.RED
-    print(output.format(name=version_info.name, color=color, info=version_info, reset=colorama.Style.RESET_ALL))
+        return sorted(config_yaml['versions'], key=lambda x: x['name'])
+
+    def scan(self):
+        for conf in self.config:
+            yield VersionInfo(conf['name'], self.get_version(conf['current']), self.get_version(conf['latest']))
+
+    def get_version(self, config):
+        """
+        Dynamically invoke the spider matching the given config to retrieve version
+        """
+        spider_class = getattr(importlib.import_module("spiders"), config['name'])
+        spider = spider_class(**config['params'])
+        return spider.get_version(self.beautify)
 
 
 if __name__ == '__main__':
@@ -51,11 +58,7 @@ if __name__ == '__main__':
 
     colorama.init()
 
-    with open(args.config) as stream:
-        config_yaml = yaml.safe_load(stream)
-
-    configuration = sorted(config_yaml['versions'], key=lambda x: x['name'])
-
+    versions = Versions(args.config, not args.ugly)
     print("{:<20}{:<10}{:<10}".format('Name', 'Current', 'Latest'))
-    for item in scan_for_versions(configuration, not args.ugly):
-        display_item(item)
+    for item in versions.scan():
+        print(item)
