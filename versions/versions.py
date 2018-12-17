@@ -36,12 +36,11 @@ def display_item(version_info):
     """
     Colored console output of a VersionInfo object.
     """
-    output = "{name}: {color}{versions}{reset}"
-    versions = "{info.current_version} -> {info.latest_version}".format(info=version_info)
+    output = "{name:<20}{color}{info.current_version:<10}{info.latest_version:<10}{reset}"
     color = colorama.Fore.GREEN
     if version_info.current_version != version_info.latest_version:
         color = colorama.Fore.RED
-    print(output.format(name=version_info.name, color=color, versions=versions, reset=colorama.Style.RESET_ALL))
+    print(output.format(name=version_info.name, color=color, info=version_info, reset=colorama.Style.RESET_ALL))
 
 
 if __name__ == '__main__':
@@ -57,5 +56,6 @@ if __name__ == '__main__':
 
     configuration = sorted(config_yaml['versions'], key=lambda x: x['name'])
 
+    print("{:<20}{:<10}{:<10}".format('Name', 'Current', 'Latest'))
     for item in scan_for_versions(configuration, not args.ugly):
         display_item(item)
