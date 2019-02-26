@@ -1,3 +1,4 @@
+import abc
 import os.path
 import re
 import subprocess
@@ -31,7 +32,32 @@ def _beautify_version(version, beautify):
     return beautiful_version
 
 
-class BitbucketReleaseSpider(object):
+class AbstractSpider(abc.ABC):
+    """
+    Base class for all spiders
+    """
+    @abc.abstractmethod
+    def get_version(self, beautify):
+        pass
+
+
+class AlpinePackageSpider(AbstractSpider):
+    """
+    Grab the latest (only?) version for an alpine package that exists for specific alpine version
+    """
+    def __init__(self, name, branch) -> None:
+        url = "https://pkgs.alpinelinux.org/packages?name={name}&branch={branch}&arch=x86_64"
+        self.url = url.format(name=name, branch=branch)
+
+    def get_version(self, beautify):
+        response = requests.get(self.url)
+        response.raise_for_status()
+        tree = html.fromstring(response.content)
+        version_list = tree.xpath('//td[@class="version"]/text()')
+        return _beautify_version(version_list[0], beautify)
+
+
+class BitbucketReleaseSpider(AbstractSpider):
     """
     Retrieve version from a Bitbucket tags (only looking at top two ones, discarding latest)
     Assumes tag list is sorted in a meaningful manner when it relates to versions
@@ -51,7 +77,7 @@ class BitbucketReleaseSpider(object):
         return _beautify_version(candidate['name'], beautify)
 
 
-class DockerfileSpider(object):
+class DockerfileSpider(AbstractSpider):
     """
     Retrieve version from a local Dockerfile (parse the Dockerfile FROM entry)
     """
@@ -73,7 +99,7 @@ class DockerfileSpider(object):
         raise ValueError("No version found in {path}".format(path=self.path))
 
 
-class DockerHubSpider(object):
+class DockerHubSpider(AbstractSpider):
     """
     Retrieve version from Docker hub tags list (only look at the top two ones, discarding latest)
     """
@@ -95,7 +121,7 @@ class DockerHubSpider(object):
         return _beautify_version(candidate['name'], beautify)
 
 
-class GithubReleaseSpider(object):
+class GithubReleaseSpider(AbstractSpider):
     """
     Retrieve version for the latest release of a Github project using the Github API
     """
@@ -111,7 +137,7 @@ class GithubReleaseSpider(object):
         return _beautify_version(response.json()['tag_name'], beautify)
 
 
-class GithubMixedReleaseSpider(object):
+class GithubMixedReleaseSpider(AbstractSpider):
     """
     Github release spider assumes latest is the latest. Some repositories mix multiple major versions in their releases
     """
@@ -132,7 +158,7 @@ class GithubMixedReleaseSpider(object):
         raise ValueError("Failed to locate a release matching major version: {major}".format(major=self.major))
 
 
-class JenkinsStableSpider(object):
+class JenkinsStableSpider(AbstractSpider):
     """
     Retrieve version for the latest stable Jenkins release (parse the published LTS changelog)
     """
@@ -151,7 +177,7 @@ class JenkinsStableSpider(object):
         return _beautify_version(version_list[0], beautify)
 
 
-class KubernetesVersionLabelSpider(object):
+class KubernetesVersionLabelSpider(AbstractSpider):
     """
     Retrieve version from a running k8s deployment assuming it's been labeled with app.kubernetes.io/version
     """
@@ -169,7 +195,7 @@ class KubernetesVersionLabelSpider(object):
         return _beautify_version(data['metadata']['labels']['app.kubernetes.io/version'], beautify)
 
 
-class KubernetesImageVersionSpider(object):
+class KubernetesImageVersionSpider(AbstractSpider):
     """
     Retrieves version from a running k8s resource using the provided pattern to boil down to the resource image spec
     For a stateful set the pattern could be: spec.template.spec.containers.0.image
@@ -199,7 +225,7 @@ class KubernetesImageVersionSpider(object):
         return _beautify_version(version, beautify)
 
 
-class SonarQubeReleaseSpider(object):
+class SonarQubeReleaseSpider(AbstractSpider):
     """
     Retrieves version using SonarQubes download pages (HTML scrape). Hopefully somewhat stable page.
     """
@@ -218,3 +244,11 @@ class SonarQubeReleaseSpider(object):
         (_, version_part) = download_links[0].split('-')
         version = version_part[:-4]  # Remove .zip extension
         return _beautify_version(version, beautify)
+
+
+class NASpider(AbstractSpider):
+    """
+    Very crude N/A spider. Mostly useful while developing
+    """
+    def get_version(self, beautify):
+        return "N/A"
