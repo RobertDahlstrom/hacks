@@ -32,7 +32,25 @@ def _beautify_version(version, beautify):
     return beautiful_version
 
 
+def _get_version_from_metadata_label(yaml_data):
+    if 'labels' not in yaml_data['metadata']:
+        raise ValueError('Key: labels not found in metadata for {name}'.format(name=yaml_data['metadata']['name']))
+
+    labels = yaml_data['metadata']['labels']
+
+    if not ('app.kubernetes.io/version' in labels or 'apps.kubernetes.io/version' in labels):
+        raise ValueError('Key: app.kubernetes.io/version not found in labels for {name}'.format(
+            name=yaml_data['metadata']['name'])
+        )
+
+    if 'app.kubernetes.io/version' in labels:
+        return labels['app.kubernetes.io/version']
+    else:
+        return labels['apps.kubernetes.io/version']
+
+
 class AbstractSpider(abc.ABC):
+
     """
     Base class for all spiders
     """
@@ -192,7 +210,7 @@ class KubernetesVersionLabelSpider(AbstractSpider):
         )
         result = subprocess.run(kubectl_command, shell=True, check=True, stdout=subprocess.PIPE, encoding='utf-8')
         data = yaml.load(result.stdout)
-        return _beautify_version(data['metadata']['labels']['app.kubernetes.io/version'], beautify)
+        return _beautify_version(_get_version_from_metadata_label(data), beautify)
 
 
 class KubernetesImageVersionSpider(AbstractSpider):
