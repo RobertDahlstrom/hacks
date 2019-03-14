@@ -6,10 +6,11 @@ import requests
 
 
 def main(args):
+    # https://docs.atlassian.com/bitbucket-server/rest/6.1.1/bitbucket-rest.html
     url = 'https://{args.host}/rest/api/1.0/admin/users?limit=1000'.format(args=args)
     request = requests.get(url, auth=(args.user, args.password))
     request.raise_for_status()
-    print(json.dumps(request.json(), indent=4, separators=(',', ': ')))
+    print(json.dumps(request.json()['values'], indent=4, separators=(',', ': ')))
 
 
 if __name__ == '__main__':
