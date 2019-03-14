@@ -15,7 +15,7 @@ def main(json_file, group):
         azure_user = azure_wrapper.find_user_by_email(email)
 
         if azure_user:
-            azure_wrapper.add_group_member(group, azure_user['object_id'])
+            azure_wrapper.add_group_member(group, azure_user['objectId'])
             print("User: {email} now in group".format(email=email))
         else:
             print("User: {email} not found in Azure".format(email=email))
