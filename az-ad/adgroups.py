@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 import argparse
 
-import azure
+import azure_wrapper
 
 
 def main(action, left, right):
     # Grab members from left group
-    left_members = azure.get_users_in_group(left)
+    left_members = azure_wrapper.get_users_in_group(left)
 
     # For each left group member, apply action on right group
     for member in left_members:
         if action == 'add':
-            azure.add_group_member(right, member['objectId'])
+            azure_wrapper.add_group_member(right, member['objectId'])
         elif action == 'remove':
-            azure.remove_user_from_group(right, member['objectId'])
+            azure_wrapper.remove_user_from_group(right, member['objectId'])
         else:
             raise ValueError("{action} is not a supported action".format(action=action))
 

@@ -3,7 +3,7 @@
 import argparse
 import json
 
-import azure
+import azure_wrapper
 
 
 def main(json_file, group):
@@ -12,10 +12,10 @@ def main(json_file, group):
 
     for user in active_user_data:
         email = user['emailAddress']
-        azure_user = azure.find_user_by_email(email)
+        azure_user = azure_wrapper.find_user_by_email(email)
 
         if azure_user:
-            azure.add_group_member(group, azure_user['object_id'])
+            azure_wrapper.add_group_member(group, azure_user['object_id'])
             print("User: {email} now in group".format(email=email))
         else:
             print("User: {email} not found in Azure".format(email=email))
