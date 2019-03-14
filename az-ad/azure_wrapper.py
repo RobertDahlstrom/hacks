@@ -23,7 +23,7 @@ def filter_users(search_filter):
       Example filter query: az ad user list --filter "mail eq 'robert.dahlstrom@diabol.se'"
       TODO: Add link to page describing filter usage
     """
-    command = "az ad user list --filter \"{filter}\"".format(filter=search_filter)
+    command = 'az ad user list --filter "{filter}"'.format(filter=search_filter)
     return _run(command)
 
 
@@ -49,7 +49,7 @@ def add_group_member(group_name, object_id):
     if user_in_group(object_id, group_name):
         return
 
-    command = "az ad group member add --group '{group}' --member-id {object_id}".format(
+    command = 'az ad group member add --group "{group}" --member-id {object_id}'.format(
         group=group_name, object_id=object_id
     )
 
@@ -69,12 +69,13 @@ def user_in_group(object_id, group_name):
 
 
 def get_users_in_group(group_name):
-    command = "az ad group member list --group {group}".format(group=group_name)
+    command = 'az ad group member list --group "{group}"'.format(group=group_name)
     return _run(command)
 
 
 def remove_user_from_group(group_name, object_id):
-    command = "az ad group member remove --group {group} --member-id {member_id}".format(
-        group=group_name, member_id=object_id
-    )
-    _run_no_return(command)
+    if user_in_group(object_id, group_name):
+        command = 'az ad group member remove --group "{group}" --member-id {member_id}'.format(
+            group=group_name, member_id=object_id
+        )
+        _run_no_return(command)
