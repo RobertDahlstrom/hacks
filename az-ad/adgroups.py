@@ -10,6 +10,7 @@ def main(action, left, right):
 
     # For each left group member, apply action on right group
     for member in left_members:
+        print("Will {action} {mail} in {right}".format(action=action, mail=member['mail'], right=right))
         if action == 'add':
             azure_wrapper.add_group_member(right, member['objectId'])
         elif action == 'remove':
