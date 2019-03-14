@@ -9,14 +9,19 @@ def main(action, left, right):
     left_members = azure_wrapper.get_users_in_group(left)
 
     # For each left group member, apply action on right group
+    count = 0
     for member in left_members:
-        print("Will {action} {mail} in {right}".format(action=action, mail=member['mail'], right=right))
+        print("Will {action} {mail} in {right}...".format(action=action, mail=member['mail'], right=right), end='')
         if action == 'add':
             azure_wrapper.add_group_member(right, member['objectId'])
         elif action == 'remove':
             azure_wrapper.remove_user_from_group(right, member['objectId'])
         else:
             raise ValueError("{action} is not a supported action".format(action=action))
+        count += 1
+        print('Done')
+
+    print("{count} users processed".format(count=count))
 
 
 if __name__ == '__main__':

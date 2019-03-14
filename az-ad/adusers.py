@@ -10,6 +10,7 @@ def main(json_file, group):
     with open(json_file) as json_stream:
         active_user_data = json.load(json_stream)
 
+    count = 0
     for user in active_user_data:
         email = user['emailAddress']
         azure_user = azure_wrapper.find_user_by_email(email)
@@ -19,6 +20,9 @@ def main(json_file, group):
             print("User: {email} now in group".format(email=email))
         else:
             print("User: {email} not found in Azure".format(email=email))
+        count += 1
+
+    print("{count} users processed".format(count=count))
 
 
 if __name__ == '__main__':
