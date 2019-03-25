@@ -15,7 +15,7 @@ def main(action, left, right):
         if action == 'add':
             azure_wrapper.add_group_member(right, member['objectId'])
         elif action == 'remove':
-            azure_wrapper.remove_user_from_group(right, member['objectId'])
+            azure_wrapper.remove_member_from_group(right, member['objectId'])
         else:
             raise ValueError("{action} is not a supported action".format(action=action))
         count += 1
