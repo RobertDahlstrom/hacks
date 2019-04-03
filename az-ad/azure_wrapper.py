@@ -85,3 +85,8 @@ def remove_members_from_group(group_name):
     members = get_users_in_group(group_name)
     for member in members:
         remove_member_from_group(group_name, member['objectId'])
+
+
+def get_group(group_name):
+    command = 'az ad group show --group {group_name}'.format(group_name=group_name)
+    return _run(command)
