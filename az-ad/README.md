@@ -1,15 +1,32 @@
 # az-ad
 
-Intended as a quick hack do configure groups in Azure AD.
+Intended as a quick hack do work with Confluence, Jira & Bitbucket, all integrated with Azure AD.
 
-Internally it uses the az cli and not the Graph API. Eventually this should be migrated to use the graph api instead.
+Internally it uses the REST API's of the tools as well as provides a wrapper around the az cli. Eventually this should 
+be migrated to use the MS Graph API.
 
-In order to use you will need to:
+To get started we assume you have python3 installed and available along with pip3
+
+ 1. Install python requirements
+
+    `pip3 install -r requirements.txt`
  
- 1. az login
+ 2. Login with az so you have a valid az login session
 
     `az login -t <tenant id> --allow-no-subscriptions`
 
- 2. Provide a json file with users, e.g. from JIRA REST API
+ 3. Edit the scripts to suite your needs
+ 
+    a. ./bitbucket.py --host <bitbucket host> --password "<admin password>"
     
-    `https://<jira host>/rest/api/2/user/search?username=.&maxResults=1000`
+    b. ./jira.py --host <jira host> --password "<admin password>"
+    
+    c. ./confluence.py --host <confluence host> --password "<admin password>"
+
+For direct interaction with azure you have the ad.*.py scripts:
+
+* adgroups.py
+* admembers.py
+* adusers.py
+
+same thing there, edit them to suit your needs.
