@@ -90,3 +90,9 @@ def remove_members_from_group(group_name):
 def get_group(group_name):
     command = 'az ad group show --group {group_name}'.format(group_name=group_name)
     return _run(command)
+
+
+def copy_members(from_group, to_group):
+    members = get_users_in_group(from_group)
+    for member in members:
+        add_group_member(to_group, member['objectId'])
