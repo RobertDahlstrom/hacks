@@ -20,7 +20,7 @@ def main(action, left, right):
         for user_id in in_both:
             print(user_id)
     else:
-        for member in left_members:
+        for member in [x for x in left_members if x['objectType'] == 'User']:
             print("Will {action} {mail} in {right}...".format(action=action, mail=member['mail'], right=right), end='')
             if action == 'add':
                 azure_wrapper.add_group_member(right, member['objectId'])
