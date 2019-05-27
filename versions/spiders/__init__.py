@@ -32,6 +32,11 @@ def _beautify_version(version, beautify):
     return beautiful_version
 
 
+def _contains_version(candidate):
+    beautified = _beautify_version(candidate, True)
+    return re.match(r'[\d+.]+', beautified)
+
+
 def _get_version_from_metadata_label(yaml_data):
     if 'labels' not in yaml_data['metadata']:
         raise ValueError('Key: labels not found in metadata for {name}'.format(name=yaml_data['metadata']['name']))
@@ -88,9 +93,12 @@ class BitbucketReleaseSpider(AbstractSpider):
         response = requests.get(self.url)
         response.raise_for_status()
         data = response.json()
+
+        index = 0
         candidate = data['values'][0]
-        if candidate['name'] == 'latest':
-            candidate = data['values'][1]
+        while not _contains_version(candidate['name']):
+            index += 1
+            candidate = data['values'][index]
 
         return _beautify_version(candidate['name'], beautify)
 
@@ -102,7 +110,7 @@ class DockerfileSpider(AbstractSpider):
     def __init__(self, path):
         self.path = path
         self.re = re.compile('^FROM .*:v?(\d+.*)$')
- 
+
     def get_version(self, beautify):
         """
         Expects a Dockerfile with this format:
