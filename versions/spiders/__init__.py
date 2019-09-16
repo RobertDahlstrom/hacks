@@ -3,6 +3,7 @@ import os.path
 import re
 import subprocess
 
+from natsort import natsorted
 import requests
 import yaml
 from lxml import html
@@ -256,20 +257,23 @@ class SonarQubeReleaseSpider(AbstractSpider):
     Retrieves version using SonarQubes download pages (HTML scrape). Hopefully somewhat stable page.
     """
     def __init__(self):
-        self.url = "https://www.sonarqube.org/downloads/"
+        self.url = 'https://binaries.sonarsource.com/Distribution/sonarqube/'
 
     def get_version(self, beautify):
         """
-        XPath version scanner for the SonarQube Download page. Usually it's the first download link on the page.
-        Actual version is then parsed from the download link.
+        XPath version scanner for the SonarQube Distribution page. Finds all downloads for sonarqube and sorts them
         """
         response = requests.get(self.url)
         response.raise_for_status()
         tree = html.fromstring(response.content)
-        download_links = tree.xpath('//a[@class="btn btn-primary"]/@href')
-        (_, version_part) = download_links[0].split('-')
-        version = version_part[:-4]  # Remove .zip extension
-        return _beautify_version(version, beautify)
+        download_links = tree.xpath('//a/@href')
+        filtered = map(lambda x: x.replace('sonarqube-', '').replace('.zip', ''),
+                       filter(lambda x: x.startswith('sonarqube-') and x.endswith('.zip'), download_links))
+        sorted_downloads = natsorted(filtered, reverse=True)
+        if len(sorted_downloads) == 0:
+            raise ValueError("SonarQubeReleaseSpider failed to locate any releases")
+
+        return _beautify_version(sorted_downloads[0], beautify)
 
 
 class NASpider(AbstractSpider):
