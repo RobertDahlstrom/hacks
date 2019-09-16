@@ -47,7 +47,14 @@ class Versions(object):
         """
         spider_class = getattr(importlib.import_module("spiders"), config['name'])
         spider = spider_class(**config['params'])
-        return spider.get_version(self.beautify)
+        version = 'N/A'
+        try:
+            version = spider.get_version(self.beautify)
+        except Exception as e:
+            print("Config {config} failed...".format(config=config))
+            raise e
+
+        return version
 
 
 if __name__ == '__main__':
