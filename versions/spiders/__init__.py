@@ -83,25 +83,20 @@ class AlpinePackageSpider(AbstractSpider):
 
 class BitbucketReleaseSpider(AbstractSpider):
     """
-    Retrieve version from a Bitbucket tags (only looking at top two ones, discarding latest)
-    Assumes tag list is sorted in a meaningful manner when it relates to versions
+    Retrieve version from Bitbucket tags. Assumes x.y.z tags are used!
     """
     def __init__(self, owner, repository):
-        api = "https://api.bitbucket.org/2.0/repositories/{owner}/{repository}/refs/tags?sort=-name"
+        api = "https://api.bitbucket.org/2.0/repositories/{owner}/{repository}/refs/tags?sort=-name&pagelen=100"
         self.url = api.format(owner=owner, repository=repository)
+        self.version_pattern = re.compile('^\d+.\d+.\d+$')
 
     def get_version(self, beautify):
         response = requests.get(self.url)
         response.raise_for_status()
         data = response.json()
 
-        index = 0
-        candidate = data['values'][0]
-        while not _contains_version(candidate['name']):
-            index += 1
-            candidate = data['values'][index]
-
-        return _beautify_version(candidate['name'], beautify)
+        versions = [x['name'] for x in data['values'] if self.version_pattern.match(x['name'])]
+        return _beautify_version(versions[0], beautify)
 
 
 class DockerfileSpider(AbstractSpider):
@@ -128,24 +123,24 @@ class DockerfileSpider(AbstractSpider):
 
 class DockerHubSpider(AbstractSpider):
     """
-    Retrieve version from Docker hub tags list (only look at the top two ones, discarding latest)
+    Retrieve version from Docker hub tags list, sorting all versions using natsort to find the highest one.
+    Assumes the tag names only contains versions!
     """
     def __init__(self, owner, name):
         self.owner = owner
         self.name = name
-        api = "https://registry.hub.docker.com/v2/repositories/{owner}/{name}/tags/"
+        api = "https://registry.hub.docker.com/v2/repositories/{owner}/{name}/tags?page_size=100"
         self.url = api.format(owner=self.owner, name=self.name)
+        self.version_pattern = re.compile('^\d+.\d+.\d+(-\d)?$')
 
     def get_version(self, beautify):
         response = requests.get(self.url)
         response.raise_for_status()
 
         data = response.json()
-        candidate = data['results'][0]
-        if candidate['name'] == 'latest':
-            candidate = data['results'][1]
-
-        return _beautify_version(candidate['name'], beautify)
+        unsorted = [x['name'] for x in data['results'] if self.version_pattern.match(x['name'])]
+        versions = natsorted(unsorted, reverse=True)
+        return _beautify_version(versions[0], beautify)
 
 
 class GithubReleaseSpider(AbstractSpider):
