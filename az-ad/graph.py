@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3 -u
 
 import adal
 import argparse
@@ -47,7 +47,7 @@ class Graph(object):
     def _query_for_values(self, endpoint):
         query_result = self._query(endpoint=endpoint)
         result = []
-        # Retrieve ALL results, which my be paginated
+        # Retrieves ALL results, which my be paginated
         while '@odata.nextLink' in query_result:
             result.extend(query_result['value'])
             self.logger.debug("Paging, fetching next page")
@@ -65,7 +65,7 @@ class Graph(object):
         response = requests.get(url=request_url, headers=self.headers)
         if response.status_code == 429:
             # We're throttled! Wait before retrying
-            self.logger.debug("Throttled, sleeping...")
+            self.logger.debug("Throttled, waiting...")
             time.sleep(10)
             return self._query(url=request_url)
         response.raise_for_status()
@@ -99,7 +99,7 @@ if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s')
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--no-logins", action="store_true", default=False, help="Only display users without any login")
+    parser.add_argument("--no-logins", action="store_true", default=False, help="Only output users without any login")
     args = parser.parse_args()
 
     main(args)
