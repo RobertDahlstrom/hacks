@@ -42,6 +42,8 @@ class Graph(object):
         return result['value'][0] if len(result['value']) == 1 else None
 
     def get_sign_ins(self):
+        # Filter example for createDateTime:
+        # endpoint="/auditLogs/signIns?$filter=userId eq 'object_id' and createdDateTime le 2019-09-01")
         return self._query_for_values(endpoint='/auditLogs/signIns')
 
     def _query_for_values(self, endpoint):
