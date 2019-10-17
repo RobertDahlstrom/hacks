@@ -24,28 +24,28 @@ class Bitbucket(object):
         request.raise_for_status()
         return request.json()['values']
 
+    def get_users_not_logged_in_for_90_days(self):
+        today = datetime.now()
 
-def not_logged_in_for_90_days(user, today):
-    if 'lastAuthenticationTimestamp' in user:
-        last_authentication_timestamp = user['lastAuthenticationTimestamp']
-        dt = datetime.fromtimestamp(last_authentication_timestamp / 1000.0)
-        delta = today - dt
-        user['lastAuthenticationDate'] = dt
-        return delta.days > 90
+        users = self.get_users()
+        filtered = [u for u in users if self._not_logged_in_for_90_days(u, today)]
+        return sorted(filtered, key=lambda u: u['lastAuthenticationDate'])
 
-    return False
+    @staticmethod
+    def _not_logged_in_for_90_days(user, today):
+        if 'lastAuthenticationTimestamp' in user:
+            last_authentication_timestamp = user['lastAuthenticationTimestamp']
+            dt = datetime.fromtimestamp(last_authentication_timestamp / 1000.0)
+            delta = today - dt
+            user['lastAuthenticationDate'] = dt
+            return delta.days > 90
+
+        return False
 
 
 def display_users_not_logged_in_for_90_days(args):
     bitbucket = Bitbucket(args.host, (args.user, args.password))
-    today = datetime.now()
-
-    users = bitbucket.get_users()
-    filtered = [u for u in users if not_logged_in_for_90_days(u, today)]
-
-    old_user_logins = sorted(filtered, key=lambda u: u['lastAuthenticationDate'])
-
-    for user in old_user_logins:
+    for user in bitbucket.get_users_not_logged_in_for_90_days():
         print("{} ({}) - {}".format(user['name'], user['active'], user['lastAuthenticationDate']))
 
 
