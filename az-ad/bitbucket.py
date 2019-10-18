@@ -24,6 +24,18 @@ class Bitbucket(object):
         request.raise_for_status()
         return request.json()['values']
 
+    def get_projects(self):
+        url = '{base}/projects?limit=1000'.format(base=self.base_url)
+        request = requests.get(url, auth=self.auth)
+        request.raise_for_status()
+        return request.json()['values']
+
+    def get_project_group_permissions(self, key):
+        url = '{base}/projects/{key}/permissions/groups?limit=1000'.format(base=self.base_url, key=key)
+        request = requests.get(url, auth=self.auth)
+        request.raise_for_status()
+        return request.json()['values']
+
     def get_users_not_logged_in_for_90_days(self):
         today = datetime.now()
 
@@ -43,14 +55,28 @@ class Bitbucket(object):
         return False
 
 
-def display_users_not_logged_in_for_90_days(args):
-    bitbucket = Bitbucket(args.host, (args.user, args.password))
+def display_users_not_logged_in_for_90_days(bitbucket):
     for user in bitbucket.get_users_not_logged_in_for_90_days():
         print("{} ({}) - {}".format(user['name'], user['active'], user['lastAuthenticationDate']))
 
 
-def main(args):
-    display_users_not_logged_in_for_90_days(args)
+def display_groups(bitbucket):
+    for group in bitbucket.get_groups():
+        print(group['name'])
+
+
+def display_project_permissions(bitbucket):
+    for project in bitbucket.get_projects():
+        group_perms = bitbucket.get_project_group_permissions(project['key'])
+        if len(group_perms) > 0:
+            print("project = {key}".format(key=project['key']))
+            for group_perm in group_perms:
+                print("  {name} - {item}".format(name=group_perm['group']['name'], item=group_perm['permission']))
+
+
+def main(bitbucket):
+    # display_users_not_logged_in_for_90_days(bitbucket)
+    display_project_permissions(bitbucket)
 
 
 if __name__ == '__main__':
@@ -59,4 +85,6 @@ if __name__ == '__main__':
     parser.add_argument('--user', default='admin')
     parser.add_argument('--password', required=True)
 
-    main(parser.parse_args())
+    args = parser.parse_args()
+    bitbucket = Bitbucket(args.host, (args.user, args.password))
+    main(bitbucket)
