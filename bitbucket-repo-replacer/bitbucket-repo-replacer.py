@@ -124,6 +124,10 @@ def main(bitbucket, config):
 
             # Search and replace provided values
             find_replace('.', replace_patterns)
+            status = subprocess.run(['git', 'status', '--porcelain'], stdout=subprocess.PIPE, encoding='utf-8')
+            if not status.stdout:
+                os.chdir('..')
+                continue
 
             # Submit pull request
             subprocess.run(
