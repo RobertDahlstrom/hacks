@@ -27,24 +27,45 @@ class Bitbucket(object):
         request.raise_for_status()
         return request.json()['values']
 
+    def add_reviewer(self, project_key, repo_slug, pull_request_id, username):
+        data = {
+            "user": {
+                "name": username
+            },
+            "role": "REVIEWER"
+        }
+
+        url = '{base}/projects/{project_key}/repos/{repo_slug}/pull-requests/{pull_request_id}/participants'.format(
+            base=self.base_url, project_key=project_key, repo_slug=repo_slug, pull_request_id=pull_request_id
+        )
+
+        headers = {'Authorization': 'Bearer ' + self.token}
+        request = requests.post(url, json=data, headers=headers)
+        request.raise_for_status()
+        print(request.json())
+
     def create_pull_request(self, project_key, repo_slug, title, description, branch):
-        pr_data = {'title': title, 'description': description, 'fromRef': {
-            'id': 'refs/heads/{branch}'.format(branch=branch),
-            'repository': {
-                'slug': repo_slug,
-                'project': {
-                    'key': project_key
+        pr_data = {
+            'title': title,
+            'description': description,
+            'fromRef': {
+                'id': 'refs/heads/{branch}'.format(branch=branch),
+                'repository': {
+                    'slug': repo_slug,
+                    'project': {
+                        'key': project_key
+                    }
+                }
+            }, 'toRef': {
+                'id': 'refs/heads/master',
+                'repository': {
+                    'slug': repo_slug,
+                    'project': {
+                        'key': project_key
+                    }
                 }
             }
-        }, 'toRef': {
-            'id': 'refs/heads/master',
-            'repository': {
-                'slug': repo_slug,
-                'project': {
-                    'key': project_key
-                }
-            }
-        }}
+        }
 
         url = '{base}/projects/{project_key}/repos/{repo_slug}/pull-requests'.format(
             base=self.base_url, project_key=project_key, repo_slug=repo_slug
@@ -53,7 +74,7 @@ class Bitbucket(object):
         headers = {'Authorization': 'Bearer ' + self.token}
         request = requests.post(url, json=pr_data, headers=headers)
         request.raise_for_status()
-        print(request.json())
+        return request.json()
 
 
 def find_replace(directory, patterns):
@@ -108,9 +129,21 @@ def main(bitbucket, config):
             subprocess.run(
                 ['git', 'commit', '-am', config['spec']['description']])
             subprocess.run(['git', 'push', 'origin', 'repo-replacer-' + execution_id])
-            bitbucket.create_pull_request(
-                project, repo['slug'], title=config['spec']['description'], description='',
-                branch='repo-replacer-' + execution_id)
+            pull_request = bitbucket.create_pull_request(project, repo['slug'], title=config['spec']['description'],
+                                                         description='', branch='repo-replacer-' + execution_id)
+            print(pull_request)
+
+            # Add reviewers to the Pull request
+            reviewers = config['spec']['reviewers']
+            for reviewer in reviewers or []:
+                try:
+                    bitbucket.add_reviewer(project_key=project, repo_slug=repo['slug'],
+                                           pull_request_id=pull_request['id'],
+                                           username=reviewer)
+                except requests.exceptions.HTTPError as e:
+                    # Don't stop execution if the reviewers assignment fails for this user
+                    if e.response.status_code == 404:
+                        pass
 
             os.chdir('..')
 
