@@ -1,0 +1,12 @@
+spec:
+  description: Replaced string with new string 
+  projects:
+    - ~user.name_site.com
+  replacements:
+    - from: old string 1
+      to: new string 1
+    - from: old string 2
+      to: new string 2
+  reviewers:
+    - user.name.1@site.com
+    - user.name.2@site.com
